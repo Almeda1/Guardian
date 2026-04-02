@@ -121,16 +121,9 @@ const AdminDashboard = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
-  }
-
-  if (!session) {
-    return <AdminLogin onLogin={() => {}} />;
-  }
-
   useEffect(() => {
-    // Fetch existing alerts
+    if (!session) return;
+
     const fetchAlerts = async () => {
       const { data } = await supabase
         .from("sos_alerts")
@@ -143,7 +136,6 @@ const AdminDashboard = () => {
     };
     fetchAlerts();
 
-    // Real-time subscription
     const channel = supabase
       .channel("sos-alerts-realtime")
       .on(
@@ -156,7 +148,6 @@ const AdminDashboard = () => {
             if (!isInitialLoad.current) {
               beepAudio();
             }
-            // Pan map to new alert
             if (mapRef.current) {
               mapRef.current.flyTo([newAlert.latitude, newAlert.longitude], 14);
             }
@@ -174,7 +165,15 @@ const AdminDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [session]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
+  }
+
+  if (!session) {
+    return <AdminLogin onLogin={() => {}} />;
+  }
 
   const updateStatus = async (id: string, status: AlertStatus) => {
     await supabase.from("sos_alerts").update({ status }).eq("id", id);
