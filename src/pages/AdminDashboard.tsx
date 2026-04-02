@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Bell, Shield, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Bell, Shield, Clock, CheckCircle, AlertTriangle, LogOut } from "lucide-react";
+import AdminLogin from "./AdminLogin";
+import type { Session } from "@supabase/supabase-js";
 import {
   Select,
   SelectContent,
