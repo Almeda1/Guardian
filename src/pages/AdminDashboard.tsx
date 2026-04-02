@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Bell, Shield, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Bell, Shield, Clock, CheckCircle, AlertTriangle, LogOut } from "lucide-react";
+import AdminLogin from "./AdminLogin";
+import type { Session } from "@supabase/supabase-js";
 import {
   Select,
   SelectContent,
@@ -99,14 +101,35 @@ const beepAudio = () => {
   } catch {}
 };
 
+const MapUpdater = ({ mapRef }: { mapRef: React.MutableRefObject<L.Map | null> }) => {
+  const map = useMap();
+  mapRef.current = map;
+  return null;
+};
+
 const AdminDashboard = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    // Fetch existing alerts
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+
     const fetchAlerts = async () => {
       const { data } = await supabase
         .from("sos_alerts")
@@ -119,7 +142,6 @@ const AdminDashboard = () => {
     };
     fetchAlerts();
 
-    // Real-time subscription
     const channel = supabase
       .channel("sos-alerts-realtime")
       .on(
@@ -132,7 +154,6 @@ const AdminDashboard = () => {
             if (!isInitialLoad.current) {
               beepAudio();
             }
-            // Pan map to new alert
             if (mapRef.current) {
               mapRef.current.flyTo([newAlert.latitude, newAlert.longitude], 14);
             }
@@ -150,7 +171,15 @@ const AdminDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [session]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
+  }
+
+  if (!session) {
+    return <AdminLogin onLogin={() => {}} />;
+  }
 
   const updateStatus = async (id: string, status: AlertStatus) => {
     await supabase.from("sos_alerts").update({ status }).eq("id", id);
@@ -167,9 +196,18 @@ const AdminDashboard = () => {
       <div className="w-80 lg:w-96 border-r border-border flex flex-col shrink-0">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-bold text-foreground">SafeGuardian</h1>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <h1 className="text-lg font-bold text-foreground">SafeGuardian</h1>
+            </div>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
           <p className="text-xs text-muted-foreground">
             Emergency Dispatch Center
@@ -275,8 +313,8 @@ const AdminDashboard = () => {
             center={mapCenter}
             zoom={6}
             className="h-full w-full"
-            ref={mapRef}
           >
+            <MapUpdater mapRef={mapRef} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
