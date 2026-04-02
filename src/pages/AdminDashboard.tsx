@@ -101,6 +101,12 @@ const beepAudio = () => {
   } catch {}
 };
 
+const MapUpdater = ({ mapRef }: { mapRef: React.MutableRefObject<L.Map | null> }) => {
+  const map = useMap();
+  mapRef.current = map;
+  return null;
+};
+
 const AdminDashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
