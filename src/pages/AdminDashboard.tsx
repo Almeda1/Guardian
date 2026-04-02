@@ -102,10 +102,32 @@ const beepAudio = () => {
 };
 
 const AdminDashboard = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<string | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const isInitialLoad = useRef(true);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
+  }
+
+  if (!session) {
+    return <AdminLogin onLogin={() => {}} />;
+  }
 
   useEffect(() => {
     // Fetch existing alerts
