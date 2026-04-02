@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      sos_alerts: {
+        Row: {
+          created_at: string
+          emergency_contact: string
+          id: string
+          latitude: number
+          longitude: number
+          status: Database["public"]["Enums"]["alert_status"]
+          updated_at: string
+          victim_age: number
+          victim_details: string
+          victim_name: string
+        }
+        Insert: {
+          created_at?: string
+          emergency_contact?: string
+          id?: string
+          latitude: number
+          longitude: number
+          status?: Database["public"]["Enums"]["alert_status"]
+          updated_at?: string
+          victim_age?: number
+          victim_details?: string
+          victim_name?: string
+        }
+        Update: {
+          created_at?: string
+          emergency_contact?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          status?: Database["public"]["Enums"]["alert_status"]
+          updated_at?: string
+          victim_age?: number
+          victim_details?: string
+          victim_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +61,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      alert_status: "unresolved" | "dispatched" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +188,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_status: ["unresolved", "dispatched", "resolved"],
+    },
   },
 } as const
