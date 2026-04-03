@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+// Replaced Leaflet with MapLibre GL JS
+import MapGL, { Marker, Popup, MapRef } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Bell, Shield, Clock, CheckCircle, AlertTriangle, LogOut, Menu, X, ArrowLeft } from "lucide-react";
 import AdminLogin from "./AdminLogin";
 import type { Session } from "@supabase/supabase-js";
@@ -15,41 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-// Fix leaflet default icon
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-});
-
-const redIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const yellowIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const greenIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
 
 type AlertStatus = "unresolved" | "dispatched" | "resolved";
 
@@ -72,10 +37,10 @@ const statusConfig = {
   resolved: { color: "bg-success", icon: CheckCircle, label: "Resolved" },
 };
 
-const getIcon = (status: AlertStatus) => {
-  if (status === "unresolved") return redIcon;
-  if (status === "dispatched") return yellowIcon;
-  return greenIcon;
+const getMarkerColor = (status: AlertStatus) => {
+  if (status === "unresolved") return "#ef4444"; // red-500
+  if (status === "dispatched") return "#eab308"; // yellow-500
+  return "#10b981"; // emerald-500
 };
 
 let audioCtx: AudioContext | null = null;
@@ -237,7 +202,7 @@ const AdminDashboard = () => {
   
   // Safeguard to prevent Leaflet from crashing during React SSR/Strict Mode
   const [isMounted, setIsMounted] = useState(false);
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<MapRef | null>(null);
   const isInitialLoad = useRef(true);
 
   useEffect(() => {
@@ -289,7 +254,7 @@ const AdminDashboard = () => {
               beepAudio();
             }
             if (mapRef.current && newAlert.latitude != null && newAlert.longitude != null) {
-              mapRef.current.flyTo([newAlert.latitude, newAlert.longitude], 14);
+              mapRef.current.flyTo({ center: [newAlert.longitude, newAlert.latitude], zoom: 14, duration: 1500 });
             }
           } else if (payload.eventType === "UPDATE") {
             setAlerts((prev) =>
@@ -442,7 +407,7 @@ const AdminDashboard = () => {
                 onClick={() => {
                   setSelectedAlert(alert.id);
                   if (alert.latitude != null && alert.longitude != null) {
-                    mapRef.current?.flyTo([alert.latitude, alert.longitude], 14, { duration: 1.5 });
+                    mapRef.current?.flyTo({ center: [alert.longitude, alert.latitude], zoom: 14, duration: 1500 });
                   }
                 }}
                 className={`w-full text-left p-5 border-b border-border/60 transition-all hover:bg-muted/40 ${
@@ -533,8 +498,8 @@ const AdminDashboard = () => {
 
         {/* Detail View Menu Bar (Mobile & Desktop) */}
         {selected && (
-          <div className="absolute top-0 left-0 right-0 z-[60] lg:static lg:z-auto pointer-events-none p-3 lg:p-0">
-            <div className="bg-background/95 backdrop-blur-xl lg:bg-card border border-border/50 lg:border-b lg:border-x-0 lg:border-t-0 p-4 lg:p-5 rounded-2xl lg:rounded-none shadow-2xl lg:shadow-none pointer-events-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="relative z-[60] shrink-0 pointer-events-none p-3 lg:p-0">
+            <div className="bg-background/95 backdrop-blur-xl lg:bg-card border border-border/50 lg:border-b lg:border-x-0 lg:border-t-0 p-4 lg:p-5 rounded-2xl lg:rounded-none shadow-lg lg:shadow-none pointer-events-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
                 <button 
                   onClick={() => setSelectedAlert(null)}
@@ -589,45 +554,74 @@ const AdminDashboard = () => {
         )}
 
         {/* Interactive Map */}
-        <div className="absolute inset-0 lg:static lg:flex-1 w-full h-full z-0 p-0 m-0">
+        <div className="flex-1 relative w-full h-full min-h-0 z-0 p-0 m-0">
           {isMounted && (
-            <MapContainer
-              center={mapCenter}
-              zoom={6}
-              className="h-full w-full"
+            <MapGL
+              initialViewState={{
+                longitude: mapCenter[1],
+                latitude: mapCenter[0],
+                zoom: 6
+              }}
+              mapStyle="https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+              style={{ width: "100%", height: "100%" }}
               ref={mapRef}
-              zoomControl={false}
             >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              />
               {alerts.filter((a) => a.latitude != null && a.longitude != null).map((alert) => (
                 <Marker
                   key={alert.id}
-                  position={[alert.latitude, alert.longitude]}
-                  icon={getIcon(alert.status)}
-                  eventHandlers={{
-                    click: () => {
-                      setSelectedAlert(alert.id);
-                      mapRef.current?.flyTo([alert.latitude, alert.longitude], 15, { duration: 1.2 });
-                    },
+                  longitude={alert.longitude}
+                  latitude={alert.latitude}
+                  anchor="bottom"
+                  onClick={(e) => {
+                    e.originalEvent.stopPropagation();
+                    setSelectedAlert(alert.id);
+                    mapRef.current?.flyTo({ center: [alert.longitude, alert.latitude], zoom: 15, duration: 1500 });
                   }}
                 >
-                  <Popup className="rounded-xl overflow-hidden shadow-xl border-0">
-                    <div className="text-sm p-1">
-                      <strong className="text-base text-foreground font-bold">{alert.victim_name || "Unknown"}</strong>
-                      <div className="h-px bg-border my-2 w-full" />
-                      <span className="font-medium text-muted-foreground">Status:</span> <strong className={`${alert.status === 'unresolved' ? 'text-destructive' : alert.status === 'resolved' ? 'text-success' : 'text-warning'}`}>{statusConfig[alert.status]?.label || "Unresolved"}</strong>
-                      <br />
-                      <span className="text-[11px] text-muted-foreground mt-1 block">
-                        {alert.created_at ? new Date(alert.created_at).toLocaleString() : "Unknown"}
-                      </span>
-                    </div>
-                  </Popup>
+                  <div className="relative flex items-center justify-center -translate-y-2 cursor-pointer transition-transform hover:scale-110">
+                    {alert.status === "unresolved" && (
+                      <div className="absolute inset-0 rounded-full bg-destructive/40 animate-ping opacity-80" style={{ width: "16px", height: "16px", left: "50%", bottom: 0, transform: "translate(-50%, -5px)" }} />
+                    )}
+                    <svg viewBox="0 0 24 24" width="32" height="32" xmlns="http://www.w3.org/2000/svg" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))" }}>
+                      <path
+                        fill={getMarkerColor(alert.status)}
+                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                      />
+                    </svg>
+                  </div>
                 </Marker>
               ))}
-            </MapContainer>
+
+              {selected && selected.latitude != null && selected.longitude != null && (
+                <Popup
+                  longitude={selected.longitude}
+                  latitude={selected.latitude}
+                  anchor="bottom"
+                  offset={35}
+                  closeButton={false}
+                  closeOnClick={false}
+                  maxWidth="300px"
+                  className="rounded-xl shadow-xl z-50"
+                >
+                  <div className="text-sm p-1">
+                    <strong className="text-base font-bold text-black">{selected.victim_name || "Unknown"}</strong>
+                    <div className="h-px bg-slate-200 my-2 w-full" />
+                    <span className="font-medium text-slate-500">Status:</span>{" "}
+                    <strong className={
+                      selected.status === 'unresolved' ? 'text-destructive' : 
+                      selected.status === 'resolved' ? 'text-success' : 'text-warning'
+                    }>
+                      {statusConfig[selected.status]?.label || "Unresolved"}
+                    </strong>
+                    <br />
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      {selected.created_at ? new Date(selected.created_at).toLocaleString() : "Unknown"}
+                    </span>
+                  </div>
+                </Popup>
+              )}
+
+            </MapGL>
           )}
         </div>
 
@@ -660,7 +654,7 @@ const AdminDashboard = () => {
                     onClick={() => {
                       setSelectedAlert(alert.id);
                       if (alert.latitude != null && alert.longitude != null) {
-                        mapRef.current?.flyTo([alert.latitude, alert.longitude], 15, { duration: 1.2 });
+                        mapRef.current?.flyTo({ center: [alert.longitude, alert.latitude], zoom: 15, duration: 1200 });
                       }
                     }}
                     className="bg-card w-full text-left p-4 mb-3 rounded-2xl border border-border/50 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden"
