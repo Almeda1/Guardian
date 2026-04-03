@@ -205,7 +205,9 @@ const SOSPage = () => {
                 <Label htmlFor="age" className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Age</Label>
                 <Input
                   id="age"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="h-10 border-border/50 bg-background/50 rounded-lg text-sm"
                   placeholder="e.g. 35"
                   value={profile.age}
@@ -223,11 +225,11 @@ const SOSPage = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="medical" className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Medical Details</Label>
+                <Label htmlFor="medical" className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">State the Issue</Label>
                 <Textarea
                   id="medical"
                   className="min-h-[60px] resize-none border-border/50 bg-background/50 rounded-lg text-sm"
-                  placeholder="e.g. Asthma, allergies..."
+                  placeholder="e.g. Broken down vehicle, feeling unsafe..."
                   value={profile.medicalInfo}
                   onChange={(e) => setProfile({ ...profile, medicalInfo: e.target.value })}
                 />
