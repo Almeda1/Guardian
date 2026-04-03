@@ -5,24 +5,24 @@ CREATE TABLE public.sos_alerts (
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
   status alert_status NOT NULL DEFAULT 'unresolved',
-  victim_name TEXT NOT NULL DEFAULT 'Amina Bello',
-  victim_age INTEGER NOT NULL DEFAULT 28,
-  victim_details TEXT NOT NULL DEFAULT 'Wearing blue hijab, Pre-existing risk file',
-  emergency_contact TEXT NOT NULL DEFAULT 'Brother (08012345678)',
+  victim_name TEXT NOT NULL DEFAULT 'Unknown',
+  victim_age INTEGER,
+  victim_details TEXT,
+  emergency_contact TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.sos_alerts ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can create alerts" ON public.sos_alerts
+CREATE POLICY "Users can create alerts" ON public.sos_alerts
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Anyone can read alerts" ON public.sos_alerts
-  FOR SELECT USING (true);
+CREATE POLICY "Only authenticated admins read alerts" ON public.sos_alerts
+  FOR SELECT USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Anyone can update alerts" ON public.sos_alerts
-  FOR UPDATE USING (true);
+CREATE POLICY "Only authenticated admins update alerts" ON public.sos_alerts
+  FOR UPDATE USING (auth.role() = 'authenticated');
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.sos_alerts;
 

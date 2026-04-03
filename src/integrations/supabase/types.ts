@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -12,43 +12,68 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       sos_alerts: {
         Row: {
           created_at: string
-          emergency_contact: string
+          emergency_contact: string | null
           id: string
           latitude: number
           longitude: number
           status: Database["public"]["Enums"]["alert_status"]
           updated_at: string
-          victim_age: number
-          victim_details: string
+          victim_age: number | null
+          victim_details: string | null
           victim_name: string
         }
         Insert: {
           created_at?: string
-          emergency_contact?: string
+          emergency_contact?: string | null
           id?: string
           latitude: number
           longitude: number
           status?: Database["public"]["Enums"]["alert_status"]
           updated_at?: string
-          victim_age?: number
-          victim_details?: string
+          victim_age?: number | null
+          victim_details?: string | null
           victim_name?: string
         }
         Update: {
           created_at?: string
-          emergency_contact?: string
+          emergency_contact?: string | null
           id?: string
           latitude?: number
           longitude?: number
           status?: Database["public"]["Enums"]["alert_status"]
           updated_at?: string
-          victim_age?: number
-          victim_details?: string
+          victim_age?: number | null
+          victim_details?: string | null
           victim_name?: string
         }
         Relationships: []
@@ -58,7 +83,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_alert_profile: {
+        Args: {
+          p_alert_id: string
+          p_new_age: number
+          p_new_contact: string
+          p_new_details: string
+          p_new_name: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       alert_status: "unresolved" | "dispatched" | "resolved"
@@ -187,6 +221,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       alert_status: ["unresolved", "dispatched", "resolved"],

@@ -56,8 +56,28 @@
     @apply border-border;
   }
 
+  html {
+    @apply bg-background text-foreground bg-black;
+    background-color: hsl(220 25% 10%);
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Custom Scrollbar Styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted/50 rounded-full cursor-pointer;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted;
   }
 }
 
