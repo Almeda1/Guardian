@@ -113,9 +113,9 @@ const SOSPage = () => {
 
   return (
     <div className="h-[100dvh] w-full bg-black flex flex-col items-center justify-center overflow-hidden relative">
-      {/* Top Navbar / Buttons - Moved to very top of the screen */}
-      <div className="fixed top-0 left-0 w-full z-50 px-4 py-3 sm:px-6 bg-background/20 backdrop-blur-xl border-b border-border/20">
-        <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-3 lg:gap-4">
+      {/* Top Navbar / Buttons - Mobile Only */}
+      <div className="fixed top-0 left-0 w-full z-50 px-4 py-3 sm:px-6 bg-background/20 backdrop-blur-xl border-b border-border/20 lg:hidden">
+        <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-3">
           
           {/* Navbar Left Content (Logo & Title) */}
           <div className="flex items-center gap-3">
@@ -123,8 +123,8 @@ const SOSPage = () => {
             <span className="font-['Montserrat'] font-black text-[22px] tracking-tight text-foreground">Guardian</span>
           </div>
 
-          <div className="flex items-center gap-3 lg:gap-4 ml-auto lg:ml-0">
-            {/* Edit Profile Button (Desktop & Mobile) */}
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Edit Profile Button (Mobile) */}
             <button onClick={() => { setIsInstantMode(true); setIsSetupOpen(true); }} className="flex items-center gap-1.5 bg-blue-600 border border-blue-500 text-white px-4 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-blue-700 hover:shadow-md active:scale-[0.98] transition-all backdrop-blur-md">
               <Settings className="h-4 w-4 text-white" />
               <span>Edit Profile</span>
@@ -139,6 +139,12 @@ const SOSPage = () => {
 
       <div className="w-full h-full lg:h-[85vh] lg:max-h-[900px] lg:max-w-6xl lg:bg-card/30 lg:backdrop-blur-2xl lg:border border-border/40 lg:rounded-[3.5rem] lg:shadow-2xl relative flex flex-col justify-evenly lg:flex-row items-center lg:justify-between px-4 pb-2 pt-[72px] sm:px-6 sm:pb-4 sm:pt-[80px] lg:p-14 overflow-hidden mx-auto transition-all duration-300">
         
+        {/* Desktop Edit Profile Button - Inside and top-right of the display card */}
+        <button onClick={() => { setIsInstantMode(true); setIsSetupOpen(true); }} className="hidden lg:flex absolute top-5 right-6 xl:top-6 xl:right-8 z-50 items-center gap-1.5 bg-blue-600 border border-blue-500 text-white px-5 py-3 rounded-full text-sm font-bold shadow-sm hover:bg-blue-700 hover:shadow-md active:scale-[0.98] transition-all backdrop-blur-md">
+          <Settings className="h-4 w-4 text-white" />
+          <span>Edit Profile</span>
+        </button>
+
         {/* Controls - Controlled Setup Dialog */}
         <Dialog open={isSetupOpen} onOpenChange={(open) => {
           if (!open) setIsInstantMode(false); // Reset on close so next auto-load animates gracefully
