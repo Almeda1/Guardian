@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Shield, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -44,30 +43,7 @@ const SOSPage = () => {
   const saveProfile = async () => {
     localStorage.setItem("safeguardian_profile", JSON.stringify(profile));
     setIsSetupOpen(false);
-    
-    const lastSosTime = localStorage.getItem("last_sos_time");
-    const lastSosId = localStorage.getItem("last_sos_id");
-    
-    // If an SOS was sent within the last 5 minutes, update the active alert with new details
-    if (lastSosTime && lastSosId && Date.now() - parseInt(lastSosTime) < 5 * 60 * 1000) {
-      try {
-        const { error } = await supabase.rpc("update_alert_profile", {
-          p_alert_id: lastSosId,
-          p_new_name: profile.name || "Unknown",
-          p_new_age: profile.age ? parseInt(profile.age) : null,
-          p_new_details: profile.medicalInfo || "No details provided",
-          p_new_contact: profile.emergencyContact || "None provided"
-        });
-        
-        if (error) throw error;
-        toast.success("Profile saved and active SOS alert updated!");
-      } catch (err) {
-        console.error("Failed to update active alert:", err);
-        toast.success("Profile saved locally, but failed to update active alert.");
-      }
-    } else {
-      toast.success("Identity profile saved!");
-    }
+    toast.success("Identity profile saved!");
   };
 
   const handleSOS = async () => {
@@ -95,24 +71,24 @@ const SOSPage = () => {
         }
       );
 
-      const newId = crypto.randomUUID();
+      const { latitude, longitude } = position.coords;
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      
+      const messageBody = `SOS EMERGENCY ALERT!\n\nName: ${profile.name || "Unknown"}\nAge: ${profile.age || "N/A"}\nIssue: ${profile.medicalInfo || "No details provided"}\n\nMy live location: ${mapsLink}`;
 
-      const { error } = await supabase.from("sos_alerts").insert({
-        id: newId,
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        victim_name: profile.name || "Unknown",
-        victim_age: profile.age ? parseInt(profile.age) : null,
-        victim_details: profile.medicalInfo || "No details provided",
-        emergency_contact: profile.emergencyContact || "None provided",
-      });
-
-      if (error) throw error;
+      // Try to open native SMS app
+      const contactNumber = profile.emergencyContact ? profile.emergencyContact.replace(/\D/g, '') : "911";
+      
+      // Determine device type for correct URI encoding scheme (iOS uses & instead of ? for params after the number)
+      const userAgent = navigator.userAgent || navigator.vendor;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+      const separator = isIOS ? "&" : "?";
+      
+      window.location.href = `sms:${contactNumber}${separator}body=${encodeURIComponent(messageBody)}`;
 
       localStorage.setItem("last_sos_time", Date.now().toString());
-      localStorage.setItem("last_sos_id", newId);
       setStatus("sent");
-      toast.success("Location sent to local authorities. Help is on the way.", {
+      toast.success("Emergency message drafted. Please press send in your messages app.", {
         duration: 8000,
       });
       
@@ -136,44 +112,32 @@ const SOSPage = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] lg:h-screen w-full bg-black flex flex-col items-center justify-center overflow-hidden relative">
+    <div className="h-[100dvh] w-full bg-black flex flex-col items-center justify-center overflow-hidden relative">
+      {/* Top Navbar / Buttons - Moved to very top of the screen */}
+      <div className="fixed top-0 left-0 w-full z-50 px-4 py-3 sm:px-6 bg-background/20 backdrop-blur-xl border-b border-border/20">
+        <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-3 lg:gap-4">
+          
+          {/* Navbar Left Content (Logo & Title) */}
+          <div className="flex items-center gap-3">
+            <img src="/shield-logo.png" alt="Shield Logo" className="h-8 w-auto drop-shadow-md" />
+            <span className="font-['Montserrat'] font-black text-[22px] tracking-tight text-foreground">Guardian</span>
+          </div>
+
+          <div className="flex items-center gap-3 lg:gap-4 ml-auto lg:ml-0">
+            {/* Edit Profile Button (Desktop & Mobile) */}
+            <button onClick={() => { setIsInstantMode(true); setIsSetupOpen(true); }} className="flex items-center gap-1.5 bg-blue-600 border border-blue-500 text-white px-4 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-blue-700 hover:shadow-md active:scale-[0.98] transition-all backdrop-blur-md">
+              <Settings className="h-4 w-4 text-white" />
+              <span>Edit Profile</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Dynamic Ambient Background Elements */}
       <div className={`absolute top-[-15%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[140px] pointer-events-none transition-colors duration-1000 ${getAmbientColor()}`} />
       <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[140px] pointer-events-none" />
 
-      <div className="w-full h-full lg:h-[85vh] lg:max-h-[900px] lg:max-w-6xl lg:bg-card/30 lg:backdrop-blur-2xl lg:border border-border/40 lg:rounded-[3.5rem] lg:shadow-2xl relative flex flex-col justify-evenly lg:flex-row items-center lg:justify-between px-4 pb-6 pt-24 sm:px-6 sm:pb-8 sm:pt-28 lg:p-14 overflow-hidden mx-auto transition-all duration-300">
-        
-        {/* Top Navbar / Buttons */}
-        <div className="absolute top-0 left-0 w-full z-50 px-4 py-3 sm:px-6 bg-background/20 backdrop-blur-xl border-b border-border/20 lg:bg-transparent lg:backdrop-blur-none lg:border-none lg:top-4 lg:right-6 lg:w-auto lg:left-auto lg:px-0 lg:py-0">
-          <div className="w-full mx-auto flex items-center justify-between lg:justify-end gap-3 lg:gap-4">
-            
-            {/* Mobile Navbar Left Content */}
-            <div className="flex items-center gap-3 lg:hidden">
-              <img src="/shield-logo.png" alt="Shield Logo" className="h-8 w-auto drop-shadow-md" />
-              <span className="font-['Montserrat'] font-black text-[22px] tracking-tight text-foreground">Guardian</span>
-            </div>
-
-            <div className="flex items-center gap-3 lg:gap-4 ml-auto lg:ml-0">
-              {/* Desktop Edit Profile Button */}
-              <button onClick={() => { setIsInstantMode(true); setIsSetupOpen(true); }} className="hidden lg:flex items-center gap-1.5 bg-background/50 border border-border/50 text-foreground px-4 py-2.5 rounded-full text-sm font-bold shadow-sm hover:bg-background/80 hover:shadow-md active:scale-[0.98] transition-none backdrop-blur-md">
-                <Settings className="h-4 w-4 text-primary" />
-                <span>Edit Profile</span>
-              </button>
-
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  await supabase.auth.signOut();
-                  window.location.href = "/admin";
-                }}
-                className="flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 sm:px-4 sm:py-2.5 rounded-full text-sm font-bold shadow-[0_4px_20px_-5px_rgba(59,130,246,0.4)] hover:shadow-[0_4px_25px_-5px_rgba(59,130,246,0.6)] active:scale-[0.98] transition-all"
-              >
-                <Shield className="h-4 w-4" />
-                Admin
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="w-full h-full lg:h-[85vh] lg:max-h-[900px] lg:max-w-6xl lg:bg-card/30 lg:backdrop-blur-2xl lg:border border-border/40 lg:rounded-[3.5rem] lg:shadow-2xl relative flex flex-col justify-evenly lg:flex-row items-center lg:justify-between px-4 pb-2 pt-[72px] sm:px-6 sm:pb-4 sm:pt-[80px] lg:p-14 overflow-hidden mx-auto transition-all duration-300">
         
         {/* Controls - Controlled Setup Dialog */}
         <Dialog open={isSetupOpen} onOpenChange={(open) => {
@@ -264,12 +228,6 @@ const SOSPage = () => {
             Your personal safety companion. Press the beacon instantly to alert authorities with your precise location.
           </p>
 
-          {/* Mobile Only Edit Profile button (under paragraph, above SOS button) */}
-          <button onClick={() => { setIsInstantMode(true); setIsSetupOpen(true); }} className="lg:hidden flex items-center justify-center gap-2.5 bg-white/[0.03] border border-white/10 text-muted-foreground hover:text-foreground px-6 py-2.5 rounded-full text-[13.5px] font-medium hover:bg-white/[0.08] active:scale-[0.98] transition-none mt-7">
-            <Settings className="h-4 w-4 text-primary/80" />
-            <span>Edit Profile</span>
-          </button>
-
           <div className="hidden lg:flex flex-col gap-4 mt-6 lg:mt-10 w-full max-w-sm">
             <div className="flex items-center gap-4 bg-background/40 backdrop-blur-md p-4 rounded-2xl border border-border/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:bg-background/60 transition-all">
               <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
@@ -286,14 +244,14 @@ const SOSPage = () => {
               </div>
               <div>
                 <p className="text-sm font-extrabold text-foreground">Encrypted Channel</p>
-                <p className="text-[13px] text-muted-foreground font-medium mt-0.5">Direct 256-bit link to dispatch</p>
+                <p className="text-[13px] text-muted-foreground font-medium mt-0.5">Immediate contact notification</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Column (SOS Button) */}
-        <div className="flex flex-col items-center lg:items-end justify-center w-full lg:mb-0 lg:mt-0 lg:w-[50%] relative z-10 py-6 lg:py-0 mt-8">
+        <div className="flex flex-col items-center lg:items-end justify-center w-full lg:mb-0 lg:mt-0 lg:w-[50%] relative z-10 py-0 lg:py-0 mt-2">
           <div className="relative flex items-center justify-center w-[240px] h-[240px] lg:w-[500px] lg:h-[500px] lg:translate-x-8">
             {status === "idle" && (
               <>
