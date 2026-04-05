@@ -199,7 +199,7 @@ const SOSPage = () => {
                 <Textarea
                   id="medical"
                   className="min-h-[60px] resize-none border-border/50 bg-background/50 rounded-lg text-sm"
-                  placeholder="e.g. Domestic violence, stalking, harassment..."
+                  placeholder="e.g. I am being followed, I feel unsafe, I am being harassed..."
                   value={profile.medicalInfo}
                   onChange={(e) => setProfile({ ...profile, medicalInfo: e.target.value })}
                 />
