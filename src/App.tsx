@@ -9,9 +9,23 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#1a1a1a', color: '#ff3333', textAlign: 'center', padding: '20px', fontFamily: 'sans-serif' }}>
-    <h1>UNABLE TO ACCESS SITE FEATURES, PAY DEVELOPER FIRST.</h1>
-  </div>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Main landing / SOS functional route */}
+          <Route path="/" element={<SOSPage />} />
+          
+          {/* Fallback 404 route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+      
+      {/* Toast notifications providers */}
+      <Toaster />
+      <Sonner />
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 export default App;
